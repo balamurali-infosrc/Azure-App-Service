@@ -19,8 +19,7 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DIR }}
-    defaults:
-      run:
+        
         working-directory: AS_Deployment
 
     steps:
