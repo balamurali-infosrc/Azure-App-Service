@@ -11,9 +11,8 @@ permissions:
   contents: read
 
 env:
-  TF_WORKING_DIR: './terraform'   # adjust to your Terraform folder
+  TF_WORKING_DIR: './terraform'
   TF_WORKING_DEPLOY: './AS_Deployment'
-
 
 jobs:
   terraform:
@@ -21,10 +20,6 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DIR }}
-        working-directory: ${{ env.TF_WORKING_DEPLOY }}
-        
-        working-directory: AS_Deployment
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -55,22 +50,23 @@ jobs:
 
       - name: Terraform Apply (main only)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve plan.tfplan 
-        
+        run: terraform apply -auto-approve plan.tfplan
+
       - name: Output Web App name
         id: webapp
         run: |
           echo "WEBAPP_NAME=$(terraform output -raw webapp_name)" >> $GITHUB_ENV
           echo "RG_NAME=$(terraform output -raw resource_group)" >> $GITHUB_ENV
 
-    deploy:
+  deploy:
     runs-on: ubuntu-latest
+    needs: terraform
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DEPLOY }}
-    needs: terraform
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Deploy App Service
         run: terraform apply -auto-approve
-
