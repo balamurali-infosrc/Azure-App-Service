@@ -19,6 +19,9 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DIR }}
+    defaults:
+      run:
+        working-directory: AS_Deployment
 
     steps:
       - name: Checkout repository
@@ -50,8 +53,8 @@ jobs:
 
       - name: Terraform Apply (main only)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve plan.tfplan AS_Deployment/
-
+        run: terraform apply -auto-approve plan.tfplan 
+        
       - name: Output Web App name
         id: webapp
         run: |
