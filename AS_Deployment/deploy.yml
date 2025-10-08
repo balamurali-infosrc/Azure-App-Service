@@ -17,11 +17,27 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ env.APP_DIR }}
+        working-directory: ${{env.TF_WORKING_DEPLOY}}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+        terraform_version: '1.8.5'
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./AS_Deployment
+
+      - name: Terraform Plan
+        run: terraform plan -out=plan.tfplan
+        working-directory: ./AS_Deployment
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve plan.tfplan
+        working-directory: ./AS_Deployment
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
