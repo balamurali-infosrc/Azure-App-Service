@@ -50,10 +50,11 @@ jobs:
 
       - name: Terraform Apply (main only)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve plan.tfplan
+        run: terraform apply -auto-approve plan.tfplan AS_Deployment/
 
       - name: Output Web App name
         id: webapp
         run: |
           echo "WEBAPP_NAME=$(terraform output -raw webapp_name)" >> $GITHUB_ENV
           echo "RG_NAME=$(terraform output -raw resource_group)" >> $GITHUB_ENV
+
