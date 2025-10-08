@@ -4,59 +4,84 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 permissions:
-  id-token: write
+  id-token: write    # required for OIDC
   contents: read
+
+env:
+  # If your app lives in a subfolder, change this (e.g. ./app)
+  APP_DIR: '.'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.APP_DIR }}
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          
-      - name: Install deps
-        working-directory: ./app
-        run: |
-         npm install
-         npm run build
+          cache: 'npm'   # optional quick cache managed by setup-node
 
-      - name: Cache node modules
+      - name: Cache npm (explicit)
         uses: actions/cache@v4
         with:
-        path: ~/.npm
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-         ${{ runner.os }}-node-
-      # - name: Install and build
-      #   run: |
-      #     npm install     # or npm ci (if package-lock.json exists)
-      #     npm run build
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles(format('{0}/**/package-lock.json', env.APP_DIR)) }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
-      # - name: Install and build
-      #   run: |
-      #     npm ci
-      #     npm run build
+      - name: Install dependencies & build
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+          npm run build
 
-      - name: Login to Azure using OIDC
+      - name: Azure login (OIDC)
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          
-          auth-type: SERVICE_PRINCIPAL
+          auth-type: service_principal
+          # allow-no-subscriptions: false
 
-      - name: Deploy to Azure WebApp (using az webapp deploy)
+      - name: (Optional) Run tests
+        if: success() && steps['Install dependencies & build'].outcome == 'success'
         run: |
+          if npm run -s test --silent; then
+            echo "Tests passed"
+          else
+            echo "Tests failed"
+            exit 1
+          fi
+
+      - name: Deploy to Azure Web App (CLI)
+        run: |
+          # If your build artifact is in a subfolder (e.g. ./dist), change --src-path accordingly
           az webapp deploy --resource-group ${{ secrets.AZURE_RG }} \
                            --name ${{ secrets.AZURE_WEBAPP_NAME }} \
-                           --src-path ./   # or path to zip/artifact
+                           --src-path "${{ env.APP_DIR }}"
+
+      # Alternative: use azure/webapps-deploy action (uncomment if preferred)
+      # - name: Deploy with azure/webapps-deploy
+      #   uses: azure/webapps-deploy@v2
+      #   with:
+      #     app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+      #     slot-name: production
+      #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}   # if using publish profile instead of OIDC
+      #     package: '${{ env.APP_DIR }}'
