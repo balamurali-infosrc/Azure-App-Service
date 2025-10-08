@@ -1,4 +1,4 @@
-name: Build & Deploy to Azure App Service
+name: Terraform — Infra
 
 on:
   push:
@@ -11,52 +11,23 @@ permissions:
   contents: read
 
 env:
-  APP_DIR: '.'   # <<-- change this to ./app or ./frontend or ./Azure-App-Service if package.json is there
+  TF_WORKING_DIR: './terraform'   # adjust to your Terraform folder
 
 jobs:
-  build-and-deploy:
+  terraform:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ env.APP_DIR }}
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: show repo files
-        run: |
-          echo "Working directory for run steps: $PWD"
-          ls -la
-          echo "Root package.json present?"
-          ls -la package.json || true
-          echo "Contents of APP_DIR ({{ env.APP_DIR }}):"
-          ls -la ${{ env.APP_DIR }} || true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
         with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Cache npm
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles(format('{0}/**/package-lock.json', env.APP_DIR)) }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Install dependencies & build
-        run: |
-          if [ -f package-lock.json ]; then
-            echo "Using npm ci"
-            npm ci
-          else
-            echo "Using npm install"
-            npm install
-          fi
-          npm run build
+          terraform_version: '1.8.5'
 
       - name: Azure login (OIDC)
         uses: azure/login@v1
@@ -67,8 +38,22 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           auth-type: service_principal
 
-      - name: Deploy to Azure Web App (CLI)
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -out=plan.tfplan
+
+      - name: Terraform Apply (main only)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve plan.tfplan
+
+      - name: Output Web App name
+        id: webapp
         run: |
-          az webapp deploy --resource-group ${{ secrets.AZURE_RG }} \
-                           --name ${{ secrets.AZURE_WEBAPP_NAME }} \
-                           --src-path "${{ env.APP_DIR }}"
+          echo "WEBAPP_NAME=$(terraform output -raw webapp_name)" >> $GITHUB_ENV
+          echo "RG_NAME=$(terraform output -raw resource_group)" >> $GITHUB_ENV
