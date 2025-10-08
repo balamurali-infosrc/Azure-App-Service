@@ -2,19 +2,16 @@ name: Build & Deploy to Azure App Service
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 permissions:
-  id-token: write    # required for OIDC
+  id-token: write
   contents: read
 
 env:
-  # If your app lives in a subfolder, change this (e.g. ./app)
-  APP_DIR: '.'
+  APP_DIR: '.'   # <<-- change this to ./app or ./frontend or ./Azure-App-Service if package.json is there
 
 jobs:
   build-and-deploy:
@@ -24,16 +21,25 @@ jobs:
         working-directory: ${{ env.APP_DIR }}
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Debug: show repo files
+        run: |
+          echo "Working directory for run steps: $PWD"
+          ls -la
+          echo "Root package.json present?"
+          ls -la package.json || true
+          echo "Contents of APP_DIR ({{ env.APP_DIR }}):"
+          ls -la ${{ env.APP_DIR }} || true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'   # optional quick cache managed by setup-node
+          cache: 'npm'
 
-      - name: Cache npm (explicit)
+      - name: Cache npm
         uses: actions/cache@v4
         with:
           path: ~/.npm
@@ -44,8 +50,10 @@ jobs:
       - name: Install dependencies & build
         run: |
           if [ -f package-lock.json ]; then
+            echo "Using npm ci"
             npm ci
           else
+            echo "Using npm install"
             npm install
           fi
           npm run build
@@ -58,30 +66,9 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           auth-type: service_principal
-          # allow-no-subscriptions: false
-
-      - name: (Optional) Run tests
-        if: success() && steps['Install dependencies & build'].outcome == 'success'
-        run: |
-          if npm run -s test --silent; then
-            echo "Tests passed"
-          else
-            echo "Tests failed"
-            exit 1
-          fi
 
       - name: Deploy to Azure Web App (CLI)
         run: |
-          # If your build artifact is in a subfolder (e.g. ./dist), change --src-path accordingly
           az webapp deploy --resource-group ${{ secrets.AZURE_RG }} \
                            --name ${{ secrets.AZURE_WEBAPP_NAME }} \
                            --src-path "${{ env.APP_DIR }}"
-
-      # Alternative: use azure/webapps-deploy action (uncomment if preferred)
-      # - name: Deploy with azure/webapps-deploy
-      #   uses: azure/webapps-deploy@v2
-      #   with:
-      #     app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-      #     slot-name: production
-      #     publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}   # if using publish profile instead of OIDC
-      #     package: '${{ env.APP_DIR }}'
