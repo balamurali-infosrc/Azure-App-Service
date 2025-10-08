@@ -65,31 +65,51 @@ resource "azurerm_app_service_plan" "plan" {
   reserved = true
 
   sku {
-    tier     = "Basic"
-    size     = "F1"
+    tier     = "Standard"
+    size     = "S1"
     capacity = 1
   }
      depends_on = [azurerm_resource_group.rg]
 #     depends_on = [azurerm_app_service_plan.func]  
 }
 
-
 resource "azurerm_app_service" "app" {
-  name                = "${var.prefix}-webappInfo"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  app_service_plan_id = azurerm_app_service_plan.plan.id
+  name                = "demoapp-web"
+  location            = azurerm_service_plan.plan.location
+  resource_group_name = azurerm_service_plan.plan.resource_group_name
+  app_service_plan_id = azurerm_service_plan.plan.id
 
   site_config {
-    linux_fx_version = "NODE|18-lts" # or "PYTHON|3.11" or container image "DOCKER|myimage:tag"
-  }
-
+    linux_fx_version = "NODE|18-lts"
+    }
+  
+  # Optional app settings for Node.js apps
   app_settings = {
-     FUNCTIONS_WORKER_RUNTIME   = "node"   # change to "python" or "dotnet" as needed
-    WEBSITE_RUN_FROM_PACKAGE   = "1"
-    FUNCTIONS_EXTENSION_VERSION  = "~4"
-    # AzureWebJobsStorage        = azurerm_storage_account.sa.primary_connection_string
+    "WEBSITE_NODE_DEFAULT_VERSION" = "18"
+    "WEBSITE_RUN_FROM_PACKAGE"    = "1"  # if deploying via zip package
   }
 }
+# resource "azurerm_app_service" "app" {
+#   name                = "${var.prefix}-webappInfo"
+#   location            = azurerm_resource_group.rg.location
+#   resource_group_name = azurerm_resource_group.rg.name
+#   app_service_plan_id = azurerm_app_service_plan.plan.id
+
+#   site_config {
+#     application_stack {
+#       # Example for Node or Python - adjust as needed
+#       # For Python use `python_version = "3.9"` plus worker runtime in app_settings
+#       node_version = "18"
+#     }
+#     # linux_fx_version = "NODE|18-lts" # or "PYTHON|3.11" or container image "DOCKER|myimage:tag"
+#   }
+
+#   app_settings = {
+#      FUNCTIONS_WORKER_RUNTIME   = "node"   # change to "python" or "dotnet" as needed
+#     WEBSITE_RUN_FROM_PACKAGE   = "1"
+#     FUNCTIONS_EXTENSION_VERSION  = "~4"
+#     # AzureWebJobsStorage        = azurerm_storage_account.sa.primary_connection_string
+#   }
+# }
 
 
