@@ -23,7 +23,7 @@ variable "prefix" {
 
 variable "location" {
   type    = string
-  default = "East US" # change to your region
+  default = "eastus2" # change to your region
 }
 
 resource "azurerm_resource_group" "rg" {
@@ -66,8 +66,8 @@ resource "azurerm_app_service_plan" "plan" {
   reserved = true
 
   sku {
-    tier     = "Standard"
-    size     = "S1"
+    tier     = "Basic"
+    size     = "B1"
     capacity = 1
   }
 #     depends_on = [azurerm_app_service_plan.func]  
