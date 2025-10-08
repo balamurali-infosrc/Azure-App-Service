@@ -2,8 +2,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      # pin to a 4.x+ release (adjust if you have a policy)
-      version = "~> 4.0"
+      version = ">= 3.70.0"
     }
   }
   required_version = ">= 1.5.0"
@@ -70,6 +69,7 @@ resource "azurerm_app_service_plan" "plan" {
     size     = "B1"
     capacity = 1
   }
+     depends_on = [azurerm_resource_group.rg]
 #     depends_on = [azurerm_app_service_plan.func]  
 }
 
