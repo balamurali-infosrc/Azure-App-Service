@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./AS_Deployment
+        working-directory: ${{ env.TF_WORKING_DEPLOY }}
     needs: terraform
     steps:
       - uses: actions/checkout@v4
