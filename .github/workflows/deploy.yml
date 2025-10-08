@@ -1,0 +1,44 @@
+name: Build & Deploy to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Login to Azure using OIDC
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          
+          auth-type: SERVICE_PRINCIPAL
+
+      - name: Deploy to Azure WebApp (using az webapp deploy)
+        run: |
+          az webapp deploy --resource-group ${{ secrets.AZURE_RG }} \
+                           --name ${{ secrets.AZURE_WEBAPP_NAME }} \
+                           --src-path ./   # or path to zip/artifact
