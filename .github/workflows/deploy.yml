@@ -1,33 +1,38 @@
-name: Terraform — Infra
+name: Build & Deploy to Azure App Service
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 permissions:
   id-token: write
   contents: read
 
 env:
-  TF_WORKING_DIR: './terraform'   # adjust to your Terraform folder
+  APP_DIR: '.'   # change if your Node app is in a subfolder
 
 jobs:
-  terraform:
+  build-and-deploy:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ env.TF_WORKING_DIR }}
+        working-directory: ${{ env.APP_DIR }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          terraform_version: '1.8.5'
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies & build
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm run build
 
       - name: Azure login (OIDC)
         uses: azure/login@v1
@@ -38,22 +43,9 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           auth-type: service_principal
 
-      - name: Terraform Init
-        run: terraform init -input=false
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Terraform Plan
-        id: plan
-        run: terraform plan -out=plan.tfplan
-
-      - name: Terraform Apply (main only)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve plan.tfplan
-
-      - name: Output Web App name
-        id: webapp
+      - name: Deploy to Azure Web App
         run: |
-          echo "WEBAPP_NAME=$(terraform output -raw webapp_name)" >> $GITHUB_ENV
-          echo "RG_NAME=$(terraform output -raw resource_group)" >> $GITHUB_ENV
+          az webapp deploy \
+            --resource-group ${{ secrets.AZURE_RG }} \
+            --name ${{ secrets.AZURE_WEBAPP_NAME }} \
+            --src-path "${{ env.APP_DIR }}"

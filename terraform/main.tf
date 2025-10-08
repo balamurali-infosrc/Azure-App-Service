@@ -32,19 +32,20 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_app_service_plan" "plan" {
-  name                = "${var.prefix}-plan"
+  name                = "APP-plan1"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  kind                = "Linux"
+  kind = "Linux"
+  reserved = true
 
   sku {
-    tier = "Standard"   # F1/B1/Dedicated scale choices - change as needed
-    size = "S1"
+    tier     = "Standard"
+    size     = "S1"
+    capacity = 1
   }
-
-  # Optional: set reserved = true for Linux
-  reserved = true
+#     depends_on = [azurerm_app_service_plan.func]  
 }
+
 
 resource "azurerm_app_service" "app" {
   name                = "${var.prefix}-webapp"
