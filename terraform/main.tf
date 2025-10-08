@@ -40,7 +40,7 @@ resource "azurerm_app_service_plan" "plan" {
 
   sku {
     tier     = "Basic"
-    size     = "F1"
+    size     = "B1"
     capacity = 1
   }
 #     depends_on = [azurerm_app_service_plan.func]  
