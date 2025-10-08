@@ -24,7 +24,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Debug: show repo files
+      - name:Debug: show repo files
         run: |
           echo "Working directory for run steps: $PWD"
           ls -la
