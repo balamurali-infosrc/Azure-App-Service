@@ -51,12 +51,20 @@ jobs:
       - name: Terraform Apply (main only)
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve plan.tfplan
-
-      - name: Output Web App name
-        id: webapp
+      - name: Set Web App environment variables
+        shell: bash
         run: |
-          echo "WEBAPP_NAME=$(terraform output -raw webapp_name)" >> $GITHUB_ENV
-          echo "RG_NAME=$(terraform output -raw resource_group)" >> $GITHUB_ENV
+         WEBAPP_NAME=$(terraform output -json webapp_name | jq -r '.')
+         RG_NAME=$(terraform output -json resource_group | jq -r '.')
+         echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
+         echo "RG_NAME=$RG_NAME" >> $GITHUB_ENV
+env:
+  TF_WORKING_DIR: ./terraform
+      # - name: Output Web App name
+      #   id: webapp
+      #   run: |
+      #     echo "WEBAPP_NAME=$(terraform output -raw webapp_name)" >> $GITHUB_ENV
+      #     echo "RG_NAME=$(terraform output -raw resource_group)" >> $GITHUB_ENV
 
   deploy:
     runs-on: ubuntu-latest
