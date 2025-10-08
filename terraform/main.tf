@@ -2,10 +2,10 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 3.70.0"
+       version = ">=3.0.0"
     }
   }
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.0.0"
 }
 
 provider "azurerm" {
@@ -66,7 +66,7 @@ resource "azurerm_app_service_plan" "plan" {
 
   sku {
     tier     = "Basic"
-    size     = "B1"
+    size     = "F1"
     capacity = 1
   }
      depends_on = [azurerm_resource_group.rg]
