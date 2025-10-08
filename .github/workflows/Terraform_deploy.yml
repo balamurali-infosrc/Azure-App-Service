@@ -12,6 +12,8 @@ permissions:
 
 env:
   TF_WORKING_DIR: './terraform'   # adjust to your Terraform folder
+  TF_WORKING_DEPLOY: './AS_Deployment'
+
 
 jobs:
   terraform:
@@ -19,6 +21,7 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.TF_WORKING_DIR }}
+        working-directory: ${{ env.TF_WORKING_DEPLOY }}
         
         working-directory: AS_Deployment
 
@@ -59,4 +62,15 @@ jobs:
         run: |
           echo "WEBAPP_NAME=$(terraform output -raw webapp_name)" >> $GITHUB_ENV
           echo "RG_NAME=$(terraform output -raw resource_group)" >> $GITHUB_ENV
+
+    deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./AS_Deployment
+    needs: terraform
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy App Service
+        run: terraform apply -auto-approve
 
