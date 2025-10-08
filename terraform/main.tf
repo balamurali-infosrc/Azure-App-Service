@@ -30,6 +30,33 @@ resource "azurerm_resource_group" "rg" {
   name     = "${var.prefix}-rg"
   location = var.location
 }
+variable "function_name" {
+  type    = string
+  default = "demo-func-app"
+}
+# resource "random_string" "suffix" {
+#   length  = 4
+#   lower   = true
+#   upper   = false
+#   numeric = true
+#   special = false
+# }
+# resource "azurerm_storage_account" "sa" {
+#   name = substr(lower(replace("${var.function_name}sa", "-", "")), 0, 24)
+# #  name                     = lower(replace("${var.function_name}sa", "-", ""))[0:24] # storage account name rules
+#   # name                     = local.sa_name
+#   resource_group_name      = azurerm_resource_group.rg.name
+#   location                 = azurerm_resource_group.rg.location
+#   account_tier             = "Standard"
+#   account_replication_type = "LRS"
+#   # allow_blob_public_access = false   # allow_blob_public_access removed for compatibility
+#   min_tls_version          = "TLS1_2"
+#   blob_properties {
+#     # disable public access
+#     default_service_version = "2021-06-08"
+#   }
+# }
+
 
 resource "azurerm_app_service_plan" "plan" {
   name                = "APP-plan1"
@@ -58,7 +85,10 @@ resource "azurerm_app_service" "app" {
   }
 
   app_settings = {
-    "WEBSITE_RUN_FROM_PACKAGE" = "1"
+     FUNCTIONS_WORKER_RUNTIME   = "node"   # change to "python" or "dotnet" as needed
+    WEBSITE_RUN_FROM_PACKAGE   = "1"
+    FUNCTIONS_EXTENSION_VERSION  = "~4"
+    # AzureWebJobsStorage        = azurerm_storage_account.sa.primary_connection_string
   }
 }
 
