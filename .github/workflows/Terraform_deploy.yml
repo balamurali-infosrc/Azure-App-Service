@@ -58,8 +58,8 @@ jobs:
          RG_NAME=$(terraform output -json resource_group | jq -r '.')
          echo "WEBAPP_NAME=$WEBAPP_NAME" >> $GITHUB_ENV
          echo "RG_NAME=$RG_NAME" >> $GITHUB_ENV
-env:
-  TF_WORKING_DIR: ./terraform
+# env:
+#   TF_WORKING_DIR: ./terraform
       # - name: Output Web App name
       #   id: webapp
       #   run: |
